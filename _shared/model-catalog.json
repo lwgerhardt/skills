@@ -1,0 +1,711 @@
+{
+  "version": 2,
+  "canonical_source": "~/.claude/skills/_shared/model-catalog.json",
+  "synced_copies": [
+    "<project>/docs/agent-rules/model-catalog.json"
+  ],
+  "sync_command": "~/.claude/skills/_shared/scripts/check_catalog_sync.py --target <path> [--sync]",
+  "last_verified": "2026-07-26",
+  "installed_client_versions": {
+    "claude_code": "2.1.141",
+    "observed_on": "2026-07-26",
+    "note": "Version-tagged platform_facts above 2.1.141 are forward-looking on this machine, not current behavior. Re-check with 'claude --version' after upgrading.",
+    "evidence": {
+      "kind": "observed",
+      "source": "operating_experience",
+      "detail": "claude --version on the machine of record",
+      "last_verified": "2026-07-26"
+    }
+  },
+  "schema_notes": {
+    "identifiers": "Platform identifiers are distinct and must not be substituted for each other. claude_code_alias is a short alias accepted by Claude Code; claude_code_model_id is a full Claude Code model ID; cursor_model_id is the slug selectable in Cursor. null means the model is not available on that platform or the identifier has not been verified (see evidence).",
+    "evidence": "Every model carries evidence blocks classifying how its facts were established. Identifier claims and capability claims are graded separately because identifiers are documented while capability guidance is largely operational judgment.",
+    "evidence_kinds": {
+      "documented": "Stated in official vendor documentation; source recorded in sources.",
+      "observed": "Directly observed in a live client (for example a tool schema or settings list) on last_verified.",
+      "heuristic": "Operating judgment from use; not vendor-published. Expect this to age."
+    }
+  },
+  "sources": {
+    "claude_code_subagents": {
+      "url": "https://code.claude.com/docs/en/sub-agents",
+      "covers": [
+        "subagent model resolution order",
+        "model field aliases and full IDs",
+        "built-in Explore model behavior",
+        "effort levels"
+      ],
+      "last_verified": "2026-07-26"
+    },
+    "cursor_skills": {
+      "url": "https://cursor.com/docs/skills",
+      "covers": [
+        "skill discovery paths including ~/.claude/skills compatibility"
+      ],
+      "last_verified": "2026-07-26"
+    },
+    "cursor_task_tool_schema": {
+      "url": null,
+      "covers": [
+        "Cursor-selectable model IDs"
+      ],
+      "observation": "Model enum exposed by the Cursor Task/subagent tool schema in a live Cursor session.",
+      "last_verified": "2026-07-26"
+    },
+    "operating_experience": {
+      "url": null,
+      "covers": [
+        "tier bands",
+        "strengths",
+        "weaknesses",
+        "prefer_for",
+        "avoid_for",
+        "role hints"
+      ],
+      "observation": "Accumulated delegation experience across Claude Code and Cursor.",
+      "last_verified": "2026-07-26"
+    }
+  },
+  "tag_vocab": {
+    "tier": [
+      "cheap",
+      "mid",
+      "capable",
+      "frontier"
+    ],
+    "platform": [
+      "cursor",
+      "claude",
+      "copilot",
+      "any"
+    ],
+    "cost": [
+      "low",
+      "medium",
+      "high"
+    ],
+    "latency": [
+      "fast",
+      "medium",
+      "slow"
+    ]
+  },
+  "strengths": [
+    "recon",
+    "read-summarize",
+    "checklist-verify",
+    "run-commands",
+    "mechanical-edit",
+    "scoped-implementation",
+    "multi-file-implementation",
+    "debugging",
+    "cross-module-reasoning",
+    "architecture",
+    "adversarial-review",
+    "planning",
+    "security",
+    "final-synthesis"
+  ],
+  "models": {
+    "haiku": {
+      "display_name": "Claude Haiku",
+      "vendor": "anthropic",
+      "tier": "cheap",
+      "platforms": [
+        "claude"
+      ],
+      "claude_code_alias": "haiku",
+      "claude_code_model_id": null,
+      "cursor_model_id": null,
+      "cost": "low",
+      "latency": "fast",
+      "strengths": [
+        "recon",
+        "read-summarize",
+        "checklist-verify"
+      ],
+      "weaknesses": [
+        "multi-file-implementation",
+        "architecture",
+        "run-commands",
+        "final-synthesis"
+      ],
+      "prefer_for": [
+        "scout",
+        "explore",
+        "read-only verifier checks"
+      ],
+      "avoid_for": [
+        "executor",
+        "security-executor",
+        "product or architecture decisions"
+      ],
+      "notes": "Best Claude Code cheap tier for lookup and summaries. Read-only scout work; no shell/edit loop. Not selectable in Cursor.",
+      "evidence": {
+        "identifiers": {
+          "kind": "documented",
+          "source": "claude_code_subagents",
+          "detail": "Alias 'haiku' documented. Pinned full model ID not verified.",
+          "last_verified": "2026-07-26"
+        },
+        "capabilities": {
+          "kind": "heuristic",
+          "source": "operating_experience",
+          "last_verified": "2026-07-26"
+        }
+      }
+    },
+    "sonnet": {
+      "display_name": "Claude Sonnet 5",
+      "vendor": "anthropic",
+      "tier": "mid",
+      "platforms": [
+        "claude",
+        "cursor"
+      ],
+      "claude_code_alias": "sonnet",
+      "claude_code_model_id": "claude-sonnet-5",
+      "cursor_model_id": "claude-sonnet-5-thinking-high",
+      "cost": "medium",
+      "latency": "medium",
+      "strengths": [
+        "scoped-implementation",
+        "mechanical-edit",
+        "debugging",
+        "checklist-verify"
+      ],
+      "weaknesses": [
+        "architecture",
+        "adversarial-review",
+        "final-synthesis"
+      ],
+      "prefer_for": [
+        "mech-executor",
+        "scoped implementation",
+        "medium debugging",
+        "verifier when tests are straightforward"
+      ],
+      "avoid_for": [
+        "chief session",
+        "cross-module architecture forks",
+        "security policy"
+      ],
+      "notes": "Normal engineering execution in Claude Code. Follow patterns; do not change architecture.",
+      "evidence": {
+        "identifiers": {
+          "kind": "documented",
+          "source": "claude_code_subagents",
+          "detail": "Alias and full ID 'claude-sonnet-5' documented; Cursor ID observed.",
+          "last_verified": "2026-07-26"
+        },
+        "capabilities": {
+          "kind": "heuristic",
+          "source": "operating_experience",
+          "last_verified": "2026-07-26"
+        }
+      }
+    },
+    "opus": {
+      "display_name": "Claude Opus 5",
+      "vendor": "anthropic",
+      "tier": "frontier",
+      "platforms": [
+        "claude",
+        "cursor"
+      ],
+      "claude_code_alias": "opus",
+      "claude_code_model_id": "claude-opus-5",
+      "cursor_model_id": "claude-opus-5-thinking-high",
+      "cost": "high",
+      "latency": "slow",
+      "strengths": [
+        "multi-file-implementation",
+        "debugging",
+        "cross-module-reasoning",
+        "architecture",
+        "security",
+        "adversarial-review"
+      ],
+      "weaknesses": [],
+      "prefer_for": [
+        "chief session",
+        "executor",
+        "security-executor",
+        "hardest delegated slices from any chief"
+      ],
+      "avoid_for": [
+        "scout",
+        "mech-executor",
+        "routine verify loops"
+      ],
+      "notes": "Hardest Claude tier. Use as chief, or as the heavy delegated tier when judgment-heavy implementation must not inherit the chief's session.",
+      "evidence": {
+        "identifiers": {
+          "kind": "documented",
+          "source": "claude_code_subagents",
+          "detail": "Alias 'opus' and full ID 'claude-opus-5' documented; Cursor ID observed.",
+          "last_verified": "2026-07-26"
+        },
+        "capabilities": {
+          "kind": "heuristic",
+          "source": "operating_experience",
+          "last_verified": "2026-07-26"
+        }
+      }
+    },
+    "fable": {
+      "display_name": "Claude Fable 5",
+      "vendor": "anthropic",
+      "tier": "frontier",
+      "platforms": [
+        "claude",
+        "cursor"
+      ],
+      "claude_code_alias": "fable",
+      "claude_code_model_id": null,
+      "cursor_model_id": "claude-fable-5-thinking-high",
+      "cost": "high",
+      "latency": "slow",
+      "strengths": [
+        "planning",
+        "adversarial-review",
+        "architecture",
+        "final-synthesis",
+        "cross-module-reasoning"
+      ],
+      "weaknesses": [
+        "run-commands",
+        "mechanical-edit"
+      ],
+      "prefer_for": [
+        "chief session",
+        "adversarial plan review",
+        "tradeoffs",
+        "final user answer"
+      ],
+      "avoid_for": [
+        "scout",
+        "mech-executor",
+        "running test commands directly"
+      ],
+      "notes": "Chief orchestrator. Delegate checkable work; keep frontier reasoning for intent and approval.",
+      "evidence": {
+        "identifiers": {
+          "kind": "documented",
+          "source": "claude_code_subagents",
+          "detail": "Alias 'fable' documented. Pinned full model ID not verified; Cursor ID observed.",
+          "last_verified": "2026-07-26"
+        },
+        "capabilities": {
+          "kind": "heuristic",
+          "source": "operating_experience",
+          "last_verified": "2026-07-26"
+        }
+      }
+    },
+    "composer-2.5": {
+      "display_name": "Composer 2.5",
+      "vendor": "cursor",
+      "tier": "cheap",
+      "platforms": [
+        "cursor"
+      ],
+      "claude_code_alias": null,
+      "claude_code_model_id": null,
+      "cursor_model_id": "composer-2.5",
+      "cost": "low",
+      "latency": "fast",
+      "strengths": [
+        "recon",
+        "read-summarize",
+        "run-commands",
+        "mechanical-edit",
+        "scoped-implementation",
+        "checklist-verify"
+      ],
+      "weaknesses": [
+        "architecture",
+        "adversarial-review",
+        "cross-module-reasoning",
+        "final-synthesis"
+      ],
+      "prefer_for": [
+        "scout",
+        "mech-executor",
+        "verifier in Cursor",
+        "any Cursor task needing shell + edits"
+      ],
+      "avoid_for": [
+        "chief session",
+        "ambiguous product tradeoffs",
+        "security policy decisions"
+      ],
+      "notes": "Default Cursor cheap tier. Full agent toolchain (shell, edit, terminal). Use in Cursor even when the chief is Grok, Sol, or Claude.",
+      "evidence": {
+        "identifiers": {
+          "kind": "observed",
+          "source": "cursor_task_tool_schema",
+          "last_verified": "2026-07-26"
+        },
+        "capabilities": {
+          "kind": "heuristic",
+          "source": "operating_experience",
+          "last_verified": "2026-07-26"
+        }
+      }
+    },
+    "composer-2.5-fast": {
+      "display_name": "Composer 2.5 Fast",
+      "vendor": "cursor",
+      "tier": "cheap",
+      "platforms": [
+        "cursor"
+      ],
+      "claude_code_alias": null,
+      "claude_code_model_id": null,
+      "cursor_model_id": "composer-2.5-fast",
+      "cost": "low",
+      "latency": "fast",
+      "strengths": [
+        "recon",
+        "read-summarize",
+        "checklist-verify"
+      ],
+      "weaknesses": [
+        "multi-file-implementation",
+        "debugging",
+        "architecture"
+      ],
+      "prefer_for": [
+        "tight-latency scout fan-outs",
+        "simple verify checklists"
+      ],
+      "avoid_for": [
+        "complex implementation",
+        "deep debugging"
+      ],
+      "notes": "Same band as Composer 2.5; prefer when latency matters and the task is narrow.",
+      "evidence": {
+        "identifiers": {
+          "kind": "observed",
+          "source": "cursor_task_tool_schema",
+          "last_verified": "2026-07-26"
+        },
+        "capabilities": {
+          "kind": "heuristic",
+          "source": "operating_experience",
+          "last_verified": "2026-07-26"
+        }
+      }
+    },
+    "sol": {
+      "display_name": "GPT 5.6 Sol Medium",
+      "vendor": "openai",
+      "tier": "capable",
+      "platforms": [
+        "cursor"
+      ],
+      "claude_code_alias": null,
+      "claude_code_model_id": null,
+      "cursor_model_id": "gpt-5.6-sol-medium",
+      "cost": "medium",
+      "latency": "medium",
+      "strengths": [
+        "planning",
+        "adversarial-review",
+        "debugging",
+        "final-synthesis"
+      ],
+      "weaknesses": [
+        "mechanical-edit at scale"
+      ],
+      "prefer_for": [
+        "chief session",
+        "structured problem decomposition",
+        "plan review"
+      ],
+      "avoid_for": [
+        "scout",
+        "bulk mechanical refactors"
+      ],
+      "notes": "Chief orchestrator. Strong structured reasoning; delegate execution and recon.",
+      "evidence": {
+        "identifiers": {
+          "kind": "observed",
+          "source": "cursor_task_tool_schema",
+          "last_verified": "2026-07-26"
+        },
+        "capabilities": {
+          "kind": "heuristic",
+          "source": "operating_experience",
+          "last_verified": "2026-07-26"
+        }
+      }
+    },
+    "terra": {
+      "display_name": "GPT 5.6 Terra Medium",
+      "vendor": "openai",
+      "tier": "capable",
+      "platforms": [
+        "cursor"
+      ],
+      "claude_code_alias": null,
+      "claude_code_model_id": null,
+      "cursor_model_id": "gpt-5.6-terra-medium",
+      "cost": "medium",
+      "latency": "medium",
+      "strengths": [
+        "multi-file-implementation",
+        "debugging",
+        "cross-module-reasoning",
+        "architecture"
+      ],
+      "weaknesses": [],
+      "prefer_for": [
+        "executor from any chief",
+        "hardest Cursor-delegated implementation"
+      ],
+      "avoid_for": [
+        "scout",
+        "mech-executor",
+        "chief session"
+      ],
+      "notes": "GPT heavy-delegation tier. Pair with Sol or Grok chiefs instead of burning chief tokens.",
+      "evidence": {
+        "identifiers": {
+          "kind": "observed",
+          "source": "cursor_task_tool_schema",
+          "last_verified": "2026-07-26"
+        },
+        "capabilities": {
+          "kind": "heuristic",
+          "source": "operating_experience",
+          "last_verified": "2026-07-26"
+        }
+      }
+    },
+    "grok": {
+      "display_name": "Grok 4.5 High",
+      "vendor": "xai",
+      "tier": "frontier",
+      "platforms": [
+        "cursor"
+      ],
+      "claude_code_alias": null,
+      "claude_code_model_id": null,
+      "cursor_model_id": "cursor-grok-4.5-high",
+      "cost": "high",
+      "latency": "slow",
+      "strengths": [
+        "planning",
+        "adversarial-review",
+        "architecture",
+        "final-synthesis",
+        "cross-module-reasoning"
+      ],
+      "weaknesses": [
+        "run-commands at scale"
+      ],
+      "prefer_for": [
+        "chief session",
+        "tradeoffs",
+        "final approval"
+      ],
+      "avoid_for": [
+        "scout",
+        "mech-executor",
+        "routine test runs"
+      ],
+      "notes": "Chief orchestrator in Cursor. Delegate to Haiku/Sonnet/Opus/Composer/Terra by cost, not vendor.",
+      "evidence": {
+        "identifiers": {
+          "kind": "observed",
+          "source": "cursor_task_tool_schema",
+          "last_verified": "2026-07-26"
+        },
+        "capabilities": {
+          "kind": "heuristic",
+          "source": "operating_experience",
+          "last_verified": "2026-07-26"
+        }
+      }
+    }
+  },
+  "platform_facts": {
+    "claude_code_subagent_model_resolution": {
+      "order": [
+        "CLAUDE_CODE_SUBAGENT_MODEL environment variable",
+        "per-invocation model parameter",
+        "subagent frontmatter model field",
+        "main conversation model"
+      ],
+      "consequence": "The environment variable silently overrides frontmatter pins. Check it first when cheap roles appear to run on the wrong model.",
+      "version_notes": "As of v2.1.196 setting the variable to 'inherit' behaves the same as leaving it unset.",
+      "evidence": {
+        "kind": "documented",
+        "source": "claude_code_subagents",
+        "last_verified": "2026-07-26"
+      }
+    },
+    "claude_code_model_field_values": {
+      "aliases": [
+        "sonnet",
+        "opus",
+        "haiku",
+        "fable"
+      ],
+      "full_id_examples": [
+        "claude-opus-5",
+        "claude-sonnet-5"
+      ],
+      "other": [
+        "inherit"
+      ],
+      "default": "inherit",
+      "evidence": {
+        "kind": "documented",
+        "source": "claude_code_subagents",
+        "last_verified": "2026-07-26"
+      }
+    },
+    "claude_code_explore_builtin": {
+      "behavior": "As of v2.1.198 built-in Explore inherits the main conversation's model, capped at Opus on the Claude API.",
+      "override": "A user or project subagent named Explore overrides the built-in and keeps its own model field; set model: haiku to keep recon cheap.",
+      "evidence": {
+        "kind": "documented",
+        "source": "claude_code_subagents",
+        "last_verified": "2026-07-26"
+      }
+    },
+    "skill_discovery_paths": {
+      "cursor": [
+        ".agents/skills/",
+        ".cursor/skills/",
+        "~/.agents/skills/",
+        "~/.cursor/skills/",
+        ".claude/skills/",
+        ".codex/skills/",
+        "~/.claude/skills/",
+        "~/.codex/skills/"
+      ],
+      "claude_code": [
+        ".claude/skills/",
+        "~/.claude/skills/"
+      ],
+      "consequence": "A skill name present both in a project and in the home directory is discovered twice. Keep personal chief skills only in ~/.claude/skills/, which both clients read.",
+      "evidence": {
+        "kind": "documented",
+        "source": "cursor_skills",
+        "last_verified": "2026-07-26"
+      }
+    }
+  },
+  "comparisons": [
+    {
+      "id": "haiku-vs-composer",
+      "models": [
+        "haiku",
+        "composer-2.5"
+      ],
+      "summary": "Both are cheap recon/verify tiers. Pick by platform and whether the task needs shell + edits.",
+      "choose_first_when": {
+        "haiku": [
+          "Session is in Claude Code",
+          "Read-only scout: grep, read excerpts, file:line summaries",
+          "Pure lookup with minimal tokens"
+        ],
+        "composer-2.5": [
+          "Session is in Cursor (subagents run here)",
+          "Verifier must run tests, scripts, or linters",
+          "Mechanical edits or multi-step tool loops in one pass",
+          "Chief is Grok/Sol/Claude but work happens in Cursor"
+        ]
+      },
+      "either_fine_when": [
+        "Summarizing an already-located code path",
+        "Checklist verification against a written plan with no commands"
+      ],
+      "note": "Composer is not smarter than Haiku for lookup — it has Cursor agent tooling. Haiku is not weaker — it is the right cheap tier inside Claude Code, where Composer is not spawnable."
+    },
+    {
+      "id": "sonnet-vs-composer",
+      "models": [
+        "sonnet",
+        "composer-2.5"
+      ],
+      "summary": "Mid execution band. Sonnet in Claude Code; Composer in Cursor with shell access.",
+      "choose_first_when": {
+        "sonnet": [
+          "Implementing in Claude Code with judgment within scoped files",
+          "Claude-native mech-executor role"
+        ],
+        "composer-2.5": [
+          "Implementing in Cursor with command verification",
+          "Fixture generation, test runs, or repo scripts in the same turn"
+        ]
+      },
+      "either_fine_when": [
+        "Small scoped fix following an existing pattern when the platform is already chosen"
+      ]
+    },
+    {
+      "id": "opus-vs-terra",
+      "models": [
+        "opus",
+        "terra"
+      ],
+      "summary": "Heavy delegated implementation. Cross-family; pick whichever is available on the active platform.",
+      "choose_first_when": {
+        "opus": [
+          "Claude Code executor or security-executor",
+          "Security-sensitive or architecture-review slices",
+          "Cursor work that needs the strongest reasoning (claude-opus-5-thinking-high)"
+        ],
+        "terra": [
+          "Cursor subagent for hard implementation at lower cost than a frontier chief",
+          "Chief is Grok or Sol and inherit would burn frontier tokens"
+        ]
+      },
+      "either_fine_when": [
+        "Complex multi-file debugging when either ID is pinned in subagent frontmatter"
+      ]
+    }
+  ],
+  "role_hints": {
+    "scout": {
+      "claude": "haiku",
+      "cursor": "composer-2.5",
+      "why": "Read-only recon; cheapest model with the right platform toolchain."
+    },
+    "mech-executor": {
+      "claude": "sonnet",
+      "cursor": "composer-2.5",
+      "why": "Fully specified work; no architecture calls."
+    },
+    "executor": {
+      "claude": "opus",
+      "cursor": "terra",
+      "cursor_alternate": "opus",
+      "why": "Judgment-heavy implementation without inheriting the chief session."
+    },
+    "verifier": {
+      "claude": "sonnet",
+      "cursor": "composer-2.5",
+      "why": "Run checks and report PASS/FAIL; Composer when commands are required."
+    },
+    "security-executor": {
+      "claude": "opus",
+      "cursor": "inherit",
+      "why": "Never lightweight; chief decides, heavy model reviews."
+    },
+    "chief": {
+      "options": [
+        "fable",
+        "opus",
+        "grok",
+        "sol"
+      ],
+      "why": "Intent, adversarial review, tradeoffs, final synthesis only."
+    }
+  }
+}
