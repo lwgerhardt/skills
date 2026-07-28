@@ -118,7 +118,56 @@ Before answering, confirm:
 - non-trivial work was verified
 - remaining risk is clear
 
-Final response should mention only what was done or decided, the verification result, and any important remaining risk.
+Final response should mention only what was done or decided, the verification result, and any important remaining risk. The chief summary below is the one permitted addition.
+
+## Chief summary
+
+An end-of-turn accountability block answering two questions: **what stayed on the expensive model versus what went to cheap workers, and was it verified before being called done?**
+
+It exists on frontier sessions only. A chief skill is loaded only when the session model is expensive (Fable, Grok, Opus, Sol), so cheaper sessions — Auto, Sonnet, Composer — never load this file and never pay the overhead. Do not replicate the block into cheap-tier agents.
+
+### Why it earns its space
+
+It makes cost legible at the moment it is still correctable, and it surfaces two failure modes that are otherwise invisible:
+
+- **The chief did worker labor.** Frontier tokens spent on grep loops, file reads, and log skimming show up as chief rows in the usage table.
+- **A worker inherited the frontier model.** A role that should have run cheap but reports the session model means a `model` pin was missing or `CLAUDE_CODE_SUBAGENT_MODEL` overrode it.
+
+### When to emit
+
+Emit when the turn did any of:
+
+- delegated to one or more workers
+- changed code, config, or docs
+- reached a decision the user is expected to act on
+
+Skip it for pure conversation, single-question answers, and trivial lookups. An accountability block on a one-line answer is noise, not accountability.
+
+### Shape
+
+A ledger, not a narrative. One line per entry, no restating what the answer above already said.
+
+```
+**Chief summary**
+- **Kept on chief:** intent reading, approach choice, tradeoffs, final synthesis
+- **Delegated:** scout — locate callers of X; mech-executor — update 7 call sites
+- **Verified:** verifier re-ran the suite, 14/14 pass; edge case Y confirmed by hand
+- **Not verified:** Z — why, and what it would take
+
+| Role | Model | Calls |
+|------|-------|-------|
+| chief | opus | 1 |
+| scout | haiku | 3 |
+| mech-executor | sonnet | 1 |
+```
+
+### Rules
+
+- Count the chief's own row. Hiding it defeats the purpose.
+- Report the model each worker **actually ran on**, not the one its frontmatter pins. The gap between the two is the finding.
+- If a substantial turn delegated nothing, say so and give the reason — delegation cost exceeded the task, or judgment was required throughout. An empty `Delegated` line with no reason is a flag.
+- State unverified work as plainly as verified work. `Not verified` is a legitimate entry; a missing verification line is not.
+- Never inflate the table to look efficient. It is a record, and a wrong record is worse than none.
 
 ## Platform facts
 

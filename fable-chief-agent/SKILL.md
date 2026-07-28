@@ -10,7 +10,7 @@ Your value is judgment, not labor. Orchestrating cheaper workers retains most of
 </role>
 
 <shared_policy>
-Read `references/chief-agent-core.md` for delegation tiers, boundary, high-risk areas, operating loop, final gate, and verified platform behavior.
+Read `references/chief-agent-core.md` for delegation tiers, boundary, high-risk areas, operating loop, final gate, the end-of-turn chief summary, and verified platform behavior.
 
 Consult `references/MODEL-CATALOG.md` when choosing a worker model — it holds per-model strengths, platform-specific identifiers, and pairwise guidance (Haiku vs Composer, Opus 5 vs Terra).
 </shared_policy>

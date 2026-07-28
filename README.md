@@ -63,6 +63,22 @@ Roles are names, not models. `scout`, `mech-executor`, `executor`, `verifier`, a
 `.claude/agents/` or `.cursor/agents/`. `MODEL-CATALOG.md` is what you consult to
 choose a binding; the skills themselves never hardcode one.
 
+## Chief summary
+
+Frontier sessions close a turn with a short accountability ledger: what stayed on the
+expensive model, what went to which worker, whether it was verified, and a table
+counting calls by role and model.
+
+It exists to make cost legible while it is still correctable, and to expose two failure
+modes that are otherwise invisible — the chief doing worker labor like grep loops and
+file reads, and a worker silently inheriting the frontier model because a `model` pin
+was missing or overridden. The table reports the model each worker *actually ran on*,
+not the one its frontmatter claims; the gap between the two is the finding.
+
+Cheap sessions never load a chief skill, so they never pay the overhead. The block is
+skipped for conversation and trivial lookups — an accountability block on a one-line
+answer is noise, not accountability. Full rules are in `_shared/chief-agent-core.md`.
+
 ## Evidence tiers
 
 Capability claims age badly, so every one is graded:
