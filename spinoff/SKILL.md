@@ -106,7 +106,17 @@ Say what is in the doc, what is in the prompt, and that anything they think of l
 
 ## Model selection
 
-The chip starts an ordinary session, so it runs on the host's configured default rather than anything this skill sets. There is no model parameter on the spawn tool. If the work warrants a specific tier, say so to the user — they set it in the new session — and do not imply you controlled it.
+Two different questions, and only one of them is out of reach.
+
+**The session's own model is the host's.** The spawn tool takes no model parameter, and a session cannot switch itself — model selection is host/UI-level, not agent-invocable. Do not write "switch to <model> first" into a chip prompt; it cannot be obeyed.
+
+**The model that does the work is yours to control**, per task rather than per session, through subagent pins. A session on a cheap default can still route a hard slice to a role pinned to a frontier model, and a session on an expensive default can push recon down to a cheap one. Since repo state crosses the boundary and conversation does not, **the durable place for this is the project's agent definitions** (`.claude/agents/*.md` frontmatter), not the chip prompt. Where those already exist, the chip prompt only needs to name the routing — "delegate the synthesis to `executor`, recon to `scout`" — and the pins do the rest, whatever the session is running on.
+
+Where they do not exist, the prompt can set `model` explicitly on each delegation instead.
+
+Check `CLAUDE_CODE_SUBAGENT_MODEL` before relying on any of it: as an environment variable it **silently overrides frontmatter pins**, and it is the first thing to look at when a role appears to be running on the wrong model.
+
+If the *session's own* reasoning tier genuinely matters — not merely a slice you could delegate — that is a human decision. Say so plainly and let the user set it; do not imply control you lack.
 
 ## Failure modes
 
