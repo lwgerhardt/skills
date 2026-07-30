@@ -24,12 +24,20 @@ fable-chief-agent/
 grok-chief-agent/
 opus-chief-agent/
 sol-chief-agent/
+spinoff/
+  SKILL.md                   workflow skill, not a chief — see below
 ```
 
-Each `SKILL.md` holds only what is genuinely per-chief: identity, ownership list,
+Each chief `SKILL.md` holds only what is genuinely per-chief: identity, ownership list,
 adversarial plan loop, role table, delegation rules. Everything identical across chiefs
 lives once in `_shared/chief-agent-core.md` and is reached through the `references`
 symlink, so the four skills cannot drift apart on shared policy.
+
+`spinoff/` is the exception to the "chief-agent" framing: a workflow skill, invoked by
+any model, for handing a workstream to a fresh agent session. It belongs here rather
+than in a project because it hardcodes no repo's layout or policy — it discovers them.
+It pairs naturally with the chief skills, since deciding what to hand off and what to
+keep is exactly the judgment call a chief owns.
 
 `_shared/` deliberately contains no `SKILL.md`. Adding one would register a bogus skill
 in both clients.
