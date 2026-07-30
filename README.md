@@ -24,6 +24,9 @@ fable-chief-agent/
 grok-chief-agent/
 opus-chief-agent/
 sol-chief-agent/
+deputy-agent/
+  SKILL.md                   the inverse — cheap session, frontier subagents
+  references -> ../_shared
 spinoff/
   SKILL.md                   workflow skill, not a chief — see below
 ```
@@ -33,11 +36,24 @@ adversarial plan loop, role table, delegation rules. Everything identical across
 lives once in `_shared/chief-agent-core.md` and is reached through the `references`
 symlink, so the four skills cannot drift apart on shared policy.
 
-`spinoff/` is the exception to the "chief-agent" framing: a workflow skill, invoked by
-any model, for handing a workstream to a fresh agent session. It belongs here rather
-than in a project because it hardcodes no repo's layout or policy — it discovers them.
-It pairs naturally with the chief skills, since deciding what to hand off and what to
-keep is exactly the judgment call a chief owns.
+`deputy-agent/` covers the opposite situation from the chiefs: the session model is
+cheap or mid, but frontier subagents are reachable. It is not a mirrored chief skill,
+because the inversion is not symmetric — a cheap model cannot reliably judge whether a
+task exceeds its own competence, and cannot fully evaluate the frontier output it gets
+back. So it escalates on **observable triggers** (category, failed-attempt count, blast
+radius) rather than self-assessment, and it does not re-judge what comes back. Final
+authority moves to the escalated subagent; in the chief skills it stays with the
+session. One skill for every cheap model rather than one per model, since the policy
+does not vary by which cheap model is running.
+
+Matters most for sessions nobody chose the model for — spun-off tasks, scheduled runs,
+cloud agents — which land on whatever the host defaults to.
+
+`spinoff/` is the other non-chief skill: a workflow, invoked by any model, for handing a
+workstream to a fresh agent session. It belongs here rather than in a project because it
+hardcodes no repo's layout or policy — it discovers them. It pairs naturally with the
+chief skills, since deciding what to hand off and what to keep is exactly the judgment
+call a chief owns.
 
 `_shared/` deliberately contains no `SKILL.md`. Adding one would register a bogus skill
 in both clients.
