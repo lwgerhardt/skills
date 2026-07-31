@@ -3,12 +3,19 @@
 
 Check mode exits nonzero and prints each drift line. Default validates the
 canonical template tree under _shared/agent-templates/.
+
+Allowed model values are derived from model-catalog.json rather than restated
+here: a role_hint names a catalog model key, and the identifiers valid for a
+platform come from that model's claude_code_alias / claude_code_model_id /
+cursor_model_id. A hint that names a missing model, or a model with no
+identifier on the platform it is bound to, is a failure rather than a skip.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -17,35 +24,41 @@ REPO_ROOT = SHARED.parent
 CATALOG = SHARED / "model-catalog.json"
 TEMPLATES = SHARED / "agent-templates"
 
-CLAUDE_ROLES: tuple[str, ...] = (
-    "scout",
-    "Explore",
-    "mech-executor",
-    "executor",
-    "verifier",
-    "security-executor",
-)
-CURSOR_ROLES: tuple[str, ...] = (
-    "scout",
-    "explore",
-    "mech-executor",
-    "executor",
-    "verifier",
-    "security-executor",
-)
-
-# Short hints from role_hints -> acceptable model field values.
-HINT_TO_MODELS: dict[str, frozenset[str]] = {
-    "haiku": frozenset({"haiku"}),
-    "sonnet": frozenset({"sonnet"}),
-    "opus": frozenset({"opus", "claude-opus-5", "claude-opus-5-thinking-high"}),
-    "composer-2.5": frozenset({"composer-2.5"}),
-    "terra": frozenset({"terra", "gpt-5.6-terra-medium"}),
-    "inherit": frozenset({"inherit"}),
+CANONICAL_ROLES: dict[str, tuple[str, ...]] = {
+    "claude": (
+        "scout",
+        "Explore",
+        "mech-executor",
+        "executor",
+        "verifier",
+        "security-executor",
+    ),
+    "cursor": (
+        "scout",
+        "explore",
+        "mech-executor",
+        "executor",
+        "verifier",
+        "security-executor",
+    ),
 }
 
 # Explore/explore are not separate role_hints entries; they share scout's tier.
 EXPLORE_ROLE = {"Explore": "scout", "explore": "scout"}
+
+INHERIT = "inherit"
+
+# Cursor accepts model parameters in bracket notation, e.g.
+# claude-opus-5-thinking-high[effort=high,context=300k].
+MODEL_PARAMS = re.compile(r"\[[^\]]*\]\s*$")
+
+# Files in an agents directory that are not agent definitions.
+NON_AGENT_FILES = {"readme.md"}
+
+PLATFORM_ID_FIELDS: dict[str, tuple[str, ...]] = {
+    "claude": ("claude_code_alias", "claude_code_model_id"),
+    "cursor": ("cursor_model_id",),
+}
 
 
 def load_catalog() -> dict:
@@ -81,34 +94,90 @@ def parse_frontmatter(text: str) -> dict[str, str]:
     return out
 
 
-def role_filename(role: str) -> str:
-    return f"{role}.md"
+def normalize_model(value: str) -> str:
+    """Drop Cursor's bracket model parameters so the base ID can be compared."""
+    return MODEL_PARAMS.sub("", value).strip()
 
 
-def expected_name(role: str) -> str:
-    return role
-
-
-def allowed_models(catalog: dict, platform: str, role: str) -> frozenset[str]:
-    role_hints: dict = catalog.get("role_hints", {})
-    hint_role = EXPLORE_ROLE.get(role, role)
-    entry = role_hints.get(hint_role)
+def model_identifiers(catalog: dict, model_key: str, platform: str) -> frozenset[str]:
+    """Identifiers a platform accepts for a catalog model. Empty when unavailable."""
+    entry = catalog.get("models", {}).get(model_key)
     if not entry:
         return frozenset()
+    ids = {entry.get(field) for field in PLATFORM_ID_FIELDS[platform]}
+    return frozenset(i for i in ids if i)
+
+
+def platform_identifiers(catalog: dict, platform: str) -> frozenset[str]:
+    """Every identifier valid on a platform, across all catalog models."""
+    ids: set[str] = set()
+    for model_key in catalog.get("models", {}):
+        ids |= model_identifiers(catalog, model_key, platform)
+    return frozenset(ids)
+
+
+def foreign_identifiers(catalog: dict, platform: str) -> frozenset[str]:
+    """Identifiers that belong to another platform and never to this one.
+
+    The catalog's schema_notes require platform identifiers stay distinct; a
+    Cursor slug pinned inside .claude/agents is drift, not a synonym.
+    """
+    others = {p for p in PLATFORM_ID_FIELDS if p != platform}
+    foreign: set[str] = set()
+    for other in others:
+        foreign |= platform_identifiers(catalog, other)
+    return frozenset(foreign - platform_identifiers(catalog, platform))
+
+
+def hint_values(catalog: dict, platform: str, role: str) -> tuple[list[str], list[str]]:
+    """Catalog model keys bound to (platform, role), plus any catalog errors."""
+    hint_role = EXPLORE_ROLE.get(role, role)
+    entry = catalog.get("role_hints", {}).get(hint_role)
+    if not entry:
+        return [], [f"role_hints has no entry for role {hint_role!r}"]
+
+    values: list[str] = []
+    primary = entry.get(platform)
+    if not primary:
+        return [], [f"role_hints[{hint_role!r}] has no {platform!r} binding"]
+    values.append(primary)
+
+    alternate = entry.get(f"{platform}_alternate")
+    if alternate:
+        values.append(alternate)
+    return values, []
+
+
+def allowed_models(
+    catalog: dict, platform: str, role: str
+) -> tuple[frozenset[str], list[str]]:
+    """Resolve a role's allowed model values. Errors mean the catalog is wrong."""
+    values, errors = hint_values(catalog, platform, role)
+    if errors:
+        return frozenset(), errors
 
     allowed: set[str] = set()
-    primary = entry.get(platform)
-    if primary:
-        allowed |= HINT_TO_MODELS.get(primary, {primary})
+    for value in values:
+        if value == INHERIT:
+            allowed.add(INHERIT)
+            continue
+        if value not in catalog.get("models", {}):
+            errors.append(
+                f"role_hints binds {role!r} to {value!r}, which is not a catalog model"
+            )
+            continue
+        ids = model_identifiers(catalog, value, platform)
+        if not ids:
+            errors.append(
+                f"role_hints binds {role!r} to {value!r}, which has no {platform} identifier"
+            )
+            continue
+        allowed |= set(ids)
 
-    alternate = entry.get("cursor_alternate")
-    if platform == "cursor" and alternate:
-        allowed |= HINT_TO_MODELS.get(alternate, {alternate})
-
-    return frozenset(allowed)
+    return frozenset(allowed), errors
 
 
-def check_agent_file(
+def check_canonical_agent(
     path: Path,
     platform: str,
     role: str,
@@ -126,34 +195,86 @@ def check_agent_file(
         return
 
     name = frontmatter.get("name")
-    model = frontmatter.get("model")
-    expected = expected_name(role)
-
     if not name:
         failures.append(f"{label}: missing frontmatter 'name'")
-    elif name != expected:
-        failures.append(f"{label}: name {name!r} != expected {expected!r}")
+    elif name != role:
+        failures.append(f"{label}: name {name!r} != expected {role!r}")
 
+    model = frontmatter.get("model")
     if not model:
-        failures.append(f"{label}: missing frontmatter 'model' (cheap roles inherit session)")
+        failures.append(
+            f"{label}: no 'model' pin, so this role will inherit the session model "
+            f"and run at chief price; pin it"
+        )
         return
 
-    allowed = allowed_models(catalog, platform, role)
-    if allowed and model not in allowed:
+    allowed, errors = allowed_models(catalog, platform, role)
+    failures.extend(f"{label}: {error}" for error in errors)
+    if errors:
+        return
+
+    if normalize_model(model) not in allowed:
         failures.append(
             f"{label}: model {model!r} not in allowed {sorted(allowed)!r} for role {role!r}"
+        )
+
+
+def check_extra_agent(
+    path: Path,
+    platform: str,
+    catalog: dict,
+    failures: list[str],
+) -> None:
+    """Every other agent file in the directory still has to pin a model.
+
+    Unpinned agents are exactly the defect the chief skills warn about: they
+    inherit the frontier session. Their model is not matched against role_hints
+    (the role is unknown), but it must exist and belong to this platform.
+    """
+    label = f"{platform}/{path.name}"
+    frontmatter = parse_frontmatter(path.read_text(encoding="utf-8"))
+    if not frontmatter:
+        failures.append(f"{label}: missing or invalid YAML frontmatter")
+        return
+
+    if platform == "claude" and not frontmatter.get("name"):
+        failures.append(f"{label}: missing frontmatter 'name'")
+
+    model = frontmatter.get("model")
+    if not model:
+        failures.append(
+            f"{label}: no 'model' pin, so this agent will inherit the session model "
+            f"and run at chief price; pin it"
+        )
+        return
+
+    base = normalize_model(model)
+    if base in foreign_identifiers(catalog, platform):
+        failures.append(
+            f"{label}: model {model!r} is another platform's identifier; "
+            f"use the {platform} identifier from model-catalog.json"
         )
 
 
 def validate_directory(
     directory: Path,
     platform: str,
-    roles: tuple[str, ...],
     catalog: dict,
 ) -> list[str]:
     failures: list[str] = []
+    roles = CANONICAL_ROLES[platform]
+
+    canonical_paths: set[Path] = set()
     for role in roles:
-        check_agent_file(directory / role_filename(role), platform, role, catalog, failures)
+        path = directory / f"{role}.md"
+        canonical_paths.add(path)
+        check_canonical_agent(path, platform, role, catalog, failures)
+
+    for path in sorted(directory.rglob("*.md")):
+        if path in canonical_paths or path.name.lower() in NON_AGENT_FILES:
+            continue
+        check_extra_agent(path, platform, catalog, failures)
+
     return failures
 
 
@@ -179,32 +300,34 @@ def check_references_symlinks(failures: list[str]) -> None:
             failures.append(f"{label}: broken symlink ({exc})")
             continue
         if resolved != expected_target:
-            failures.append(
-                f"{label}: points to {resolved}, expected {expected_target}"
-            )
+            failures.append(f"{label}: points to {resolved}, expected {expected_target}")
 
 
-def resolve_agent_dirs(args: argparse.Namespace) -> tuple[Path | None, Path | None]:
-    claude_dir = args.claude_dir
-    cursor_dir = args.cursor_dir
+def resolve_agent_dirs(args: argparse.Namespace) -> dict[str, Path]:
+    """Map platform -> directory for every platform this run should check."""
+    explicit: dict[str, Path] = {}
+    if args.claude_dir is not None:
+        explicit["claude"] = args.claude_dir
+    if args.cursor_dir is not None:
+        explicit["cursor"] = args.cursor_dir
 
     if args.target is not None:
-        target = args.target.expanduser().resolve()
-        if claude_dir is None:
-            claude_dir = target / ".claude" / "agents"
-        if cursor_dir is None:
-            cursor_dir = target / ".cursor" / "agents"
+        target = args.target
+        explicit.setdefault("claude", target / ".claude" / "agents")
+        explicit.setdefault("cursor", target / ".cursor" / "agents")
 
-    if claude_dir is None and cursor_dir is None:
-        claude_dir = TEMPLATES / "claude"
-        cursor_dir = TEMPLATES / "cursor"
+    if not explicit:
+        explicit = {"claude": TEMPLATES / "claude", "cursor": TEMPLATES / "cursor"}
 
-    if claude_dir is not None:
-        claude_dir = claude_dir.expanduser().resolve()
-    if cursor_dir is not None:
-        cursor_dir = cursor_dir.expanduser().resolve()
+    return {
+        platform: path.expanduser().resolve() for platform, path in explicit.items()
+    }
 
-    return claude_dir, cursor_dir
+
+def selected_platforms(args: argparse.Namespace, dirs: dict[str, Path]) -> list[str]:
+    if args.platform in ("claude", "cursor"):
+        return [args.platform]
+    return [p for p in ("claude", "cursor") if p in dirs]
 
 
 def main() -> int:
@@ -217,6 +340,16 @@ def main() -> int:
     parser.add_argument("--claude-dir", type=Path, help="override Claude agents directory")
     parser.add_argument("--cursor-dir", type=Path, help="override Cursor agents directory")
     parser.add_argument(
+        "--platform",
+        choices=("auto", "claude", "cursor", "both"),
+        default="auto",
+        help=(
+            "which platforms must be present. 'auto' (default) checks whichever "
+            "agent directories exist and fails only when none do; 'both' requires "
+            "each one; 'claude'/'cursor' check just that platform"
+        ),
+    )
+    parser.add_argument(
         "--skip-symlinks",
         action="store_true",
         help="skip chief/deputy references -> _shared symlink check",
@@ -224,26 +357,46 @@ def main() -> int:
     args = parser.parse_args()
 
     catalog = load_catalog()
-    claude_dir, cursor_dir = resolve_agent_dirs(args)
+    dirs = resolve_agent_dirs(args)
+    platforms = selected_platforms(args, dirs)
     failures: list[str] = []
+    checked: list[str] = []
+    skipped: list[str] = []
 
-    validating_templates = (
-        claude_dir == (TEMPLATES / "claude").resolve()
-        and cursor_dir == (TEMPLATES / "cursor").resolve()
+    # Explicit paths and --platform pins are assertions the directory exists;
+    # under 'auto' a project may legitimately use only one client.
+    required = {
+        p
+        for p in platforms
+        if args.platform in ("both", "claude", "cursor")
+        or (p == "claude" and args.claude_dir is not None)
+        or (p == "cursor" and args.cursor_dir is not None)
+    }
+
+    for platform in platforms:
+        directory = dirs.get(platform)
+        if directory is None:
+            failures.append(f"{platform}: no agents directory resolved")
+            continue
+        if not directory.is_dir():
+            if platform in required:
+                failures.append(f"{platform} agents dir missing: {directory}")
+            else:
+                skipped.append(f"{platform}={directory}")
+            continue
+        failures.extend(validate_directory(directory, platform, catalog))
+        checked.append(f"{platform}={directory}")
+
+    if not checked and not failures:
+        failures.append(
+            "no agent directories found: "
+            + ", ".join(f"{p}={dirs[p]}" for p in platforms)
+        )
+
+    validating_templates = all(
+        dirs.get(platform) == (TEMPLATES / platform).resolve()
+        for platform in ("claude", "cursor")
     )
-
-    if claude_dir is not None:
-        if not claude_dir.is_dir():
-            failures.append(f"claude agents dir missing: {claude_dir}")
-        else:
-            failures.extend(validate_directory(claude_dir, "claude", CLAUDE_ROLES, catalog))
-
-    if cursor_dir is not None:
-        if not cursor_dir.is_dir():
-            failures.append(f"cursor agents dir missing: {cursor_dir}")
-        else:
-            failures.extend(validate_directory(cursor_dir, "cursor", CURSOR_ROLES, catalog))
-
     if validating_templates and not args.skip_symlinks:
         check_references_symlinks(failures)
 
@@ -253,12 +406,10 @@ def main() -> int:
             print(f"  {line}")
         return 1
 
-    parts: list[str] = []
-    if claude_dir is not None:
-        parts.append(f"claude={claude_dir}")
-    if cursor_dir is not None:
-        parts.append(f"cursor={cursor_dir}")
-    print(f"agent templates OK ({', '.join(parts)})")
+    message = f"agent templates OK ({', '.join(checked)})"
+    if skipped:
+        message += f" [not present: {', '.join(skipped)}]"
+    print(message)
     return 0
 
 

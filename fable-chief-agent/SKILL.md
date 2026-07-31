@@ -71,35 +71,9 @@ Claude Code v2.1.198+: built-in `Explore` inherits the main-session model. Overr
 </delegation_rules>
 
 <cost_discipline>
-Fable is judgment-only and cost-sensitive. Every scout, mech-executor, and verifier call must pin a cheap worker model — missing pins that inherit Fable are a defect.
+The shared rules — workers never inherit the chief, scout fan-out capped at 3, loop matched to task size, escalate on evidence — are in `references/chief-agent-core.md`. Fable-specific:
 
-**Opt-in chief**
-- This skill loads only when the session model is Fable (or another expensive top-tier model matching the description).
-- Cheap/mid sessions must not load it.
-- Do not treat Fable as the default Claude chief for every task.
-
-**Workers must not inherit Fable**
-- Every scout/Explore, mech-executor, and verifier invocation must pin a cheap model in agent frontmatter or per-call `model`.
-- Project agents: `.claude/agents/` (Claude Code), `.cursor/agents/` (Cursor). Bootstrap from `references/agent-templates/`.
-- Ad-hoc fan-outs without an explicit cheap `model` pin are defects.
-
-**Sonnet defaults (Claude Code)**
-- Default `mech-executor` and `verifier` to Sonnet (`sonnet`, effort low).
-- Do not escalate those roles to Opus/Fable unless the task is high-risk or the cheap pass failed twice.
-
-**Scout caps**
-- Cap parallel scout/Explore fan-outs at **3**.
-- Prefer one scoped scout over overlapping sweeps.
-- Do not spawn a scout for a single known-file read the chief can do cheaper.
-- After the cap, serialize or take the recon yourself only if judgment is required to interpret partial findings.
-
-**Tiered loops**
-- Keep using the adversarial plan loop for non-trivial work.
-- Do not run full draft → adversarial → implement on trivial tasks.
-- Trivial = single obvious edit, pure lookup, or conversation.
-
-**Cursor**
-- Cheap roles stay on `composer-2.5`.
-- `executor` defaults to Terra (`gpt-5.6-terra-medium`) or an Opus 5 pin — never silent Fable inherit for routine implementation.
-- `security-executor` may `inherit` because security must not run on Composer alone; that is the intentional exception.
+- **Opt-in only.** This skill loads when the session model is Fable or an equivalent top-tier model. Cheap and mid sessions load `deputy-agent` instead. Fable is not the default Claude chief.
+- **Claude Code.** `mech-executor` and `verifier` stay on `sonnet`, effort low. Escalating either to Opus — never to Fable — requires a high-risk change or two failed cheap passes.
+- **Cursor.** Cheap roles stay on `composer-2.5`; `executor` defaults to Terra (`gpt-5.6-terra-medium`) or an Opus 5 pin. A silent Fable inherit for routine implementation is a defect. `security-executor` is the one role that may `inherit`, because security must not run on Composer alone.
 </cost_discipline>

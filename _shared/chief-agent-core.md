@@ -79,6 +79,31 @@ If the task involves intent, design, tradeoffs, risk, disagreement, or final app
 
 Never delegate: single-file reads you need immediately, decisions, or anything the user asked you personally to judge.
 
+## Cost discipline
+
+A chief skill loads only when the session model is expensive, so every worker that
+inherits the session is a cost defect rather than a style preference. These rules hold
+for all four chiefs; per-chief model bindings live in each `SKILL.md`.
+
+**Workers must not inherit the chief.** Every `scout` / `Explore`, `mech-executor`, and
+`verifier` invocation pins a cheap model — in agent frontmatter under `.claude/agents/`
+or `.cursor/agents/`, or as an explicit per-call `model`. An ad-hoc fan-out with no pin
+is a defect, not a shortcut. Bootstrap project agents from `references/agent-templates/`
+and check them with `references/scripts/check_agent_templates.py --target <project>`.
+
+**Cap scout fan-out at 3 parallel calls.** Prefer one scoped scout over overlapping
+sweeps. Do not spawn a scout for a single known-file read the chief can do in one tool
+call. Past the cap, serialize — or take the recon directly, but only when interpreting
+partial findings needs chief judgment.
+
+**Match the loop to the task.** The adversarial plan loop is for non-trivial work. A
+single obvious edit, a pure lookup, or a conversational answer does not get a full
+draft → adversarial review → implement cycle.
+
+**Escalate on evidence, not caution.** Start at the cheapest plausible tier. Move a role
+up a tier when the change is high-risk or the cheap pass has failed twice — not because
+the task feels important.
+
 ## High-risk areas
 
 - auth

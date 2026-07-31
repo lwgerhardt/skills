@@ -97,14 +97,22 @@ Chief skills install once in `~/.claude/skills/`. Model bindings are per-project
 copy the stubs into each repo's agent directories.
 
 ```bash
+mkdir -p <project>/.claude/agents <project>/.cursor/agents
 cp _shared/agent-templates/claude/*  <project>/.claude/agents/
 cp _shared/agent-templates/cursor/*  <project>/.cursor/agents/
 ```
 
-Templates pin models from `role_hints` in `model-catalog.json`. Omit `model` in
-frontmatter and cheap roles inherit the frontier session — the templates always set
-it. Claude `Explore.md` (capital E) overrides the built-in Explore agent; Cursor uses
-`explore.md` (lowercase) as the cheap analog.
+Copy only the platform you use. Templates pin models from `role_hints` in
+`model-catalog.json`, and every one of them sets `model` explicitly. Keep it that way:
+an agent with no `model` inherits the session model, so under a frontier chief a scout
+runs at frontier price without announcing it. That silent inherit is the failure these
+pins exist to prevent. Claude `Explore.md` (capital E) overrides the built-in Explore
+agent; Cursor uses `explore.md` (lowercase) as the cheap analog.
+
+Cursor discovers `.claude/agents/` as well as `.cursor/agents/`, with `.cursor/`
+winning on a name collision — so the five shared role names resolve correctly, but a
+Cursor session also sees the Claude-only `Explore` pinned to a model Cursor cannot
+select, and falls back silently. Harmless, and worth recognizing before you debug it.
 
 Validate the canonical templates or an installed project copy:
 
@@ -113,9 +121,13 @@ _shared/scripts/check_agent_templates.py
 _shared/scripts/check_agent_templates.py --target <project>
 ```
 
-Exits nonzero on missing roles, wrong `name`, or model pins that drift from
-`role_hints`. Projects may escalate `verifier` or `executor` pins; the templates ship
-the cheap defaults.
+Exits nonzero on missing roles, wrong `name`, model pins that drift from `role_hints`,
+another platform's identifier used in the wrong directory, and any *other* agent file in
+the directory that fails to pin a model — the unpinned-worker case is the one that
+actually costs money. A `role_hints` entry that goes missing fails loudly rather than
+skipping the check. `--target` checks whichever agent directories exist; pass
+`--platform both` to require each one. Projects may escalate `verifier` or `executor`
+pins; the templates ship the cheap defaults.
 
 ## Chief summary
 
