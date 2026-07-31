@@ -51,7 +51,7 @@ Delegation is **cost-optimized across families** — pick the cheapest capable m
 |------|-------------|--------|----------|
 | `scout` / `Explore` | `haiku`, effort low | **`composer-2.5`** | Search, lookup, fan-out recon |
 | `mech-executor` | `sonnet`, effort low | **`composer-2.5`** | Fully-specified mechanical work |
-| `executor` | `opus`, effort medium | **`gpt-5.6-terra-medium`** or Opus 5 | Judgment-heavy implementation |
+| `executor` | `opus`, effort medium | **`gpt-5.6-terra-medium`** or `claude-opus-5-thinking-high` | Judgment-heavy implementation |
 | `verifier` | `sonnet`, effort low | **`composer-2.5`** | Fresh-context verification before done |
 | `security-executor` | `opus`, effort high | `inherit` | Auth, secrets, crypto, hardening — never in main session |
 
@@ -75,5 +75,5 @@ The shared rules — workers never inherit the chief, scout fan-out capped at 3,
 
 - **Opt-in only.** This skill loads when the session model is Fable or an equivalent top-tier model. Cheap and mid sessions load `deputy-agent` instead. Fable is not the default Claude chief.
 - **Claude Code.** `mech-executor` and `verifier` stay on `sonnet`, effort low. Escalating either to Opus — never to Fable — requires a high-risk change or two failed cheap passes.
-- **Cursor.** Cheap roles stay on `composer-2.5`; `executor` defaults to Terra (`gpt-5.6-terra-medium`) or an Opus 5 pin. A silent Fable inherit for routine implementation is a defect. `security-executor` is the one role that may `inherit`, because security must not run on Composer alone.
+- **Cursor.** Cheap roles stay on `composer-2.5`; `executor` defaults to Terra (`gpt-5.6-terra-medium`), or `claude-opus-5-thinking-high` for the hardest slices. A silent Fable inherit for routine implementation is a defect. `security-executor` is the one role that may `inherit`, because security must not run on Composer alone.
 </cost_discipline>

@@ -228,8 +228,14 @@ def check_extra_agent(
     """Every other agent file in the directory still has to pin a model.
 
     Unpinned agents are exactly the defect the chief skills warn about: they
-    inherit the frontier session. Their model is not matched against role_hints
-    (the role is unknown), but it must exist and belong to this platform.
+    inherit the frontier session. Two things are checked here — the pin exists,
+    and it is not another platform's identifier.
+
+    The pin is deliberately *not* required to name a catalog model. The catalog
+    is a curated set of delegation tiers, not an allowlist of every valid model,
+    so a project pinning a dated ID or a model the catalog does not track is
+    legitimate. The cost of that: a typo'd model ID passes here. Canonical roles
+    are matched against role_hints and do not have this gap.
     """
     label = f"{platform}/{path.name}"
     frontmatter = parse_frontmatter(path.read_text(encoding="utf-8"))
