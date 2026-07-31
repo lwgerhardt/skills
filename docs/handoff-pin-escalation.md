@@ -1,7 +1,10 @@
 # Handoff: sanctioned pin escalations in `check_agent_templates.py`
 
-**Status:** nothing started. First session produces a written decision on the `inherit`
-question below, then implements it. Verified 2026-07-31 against `main` at `f9f3319`.
+**Status:** decision written and implemented 2026-07-31 on `docs/handoff-pin-escalation`.
+Verifier: PASS WITH NOTES (logic matches decision; minor test gaps only).
+Delete this doc when the change lands on `main`.
+Verified baseline against `main` at `f9f3319`. Live install pulled to `f9f3319`;
+`CLAUDE_CODE_SUBAGENT_MODEL` unset for the experiment.
 
 **Job:** teach the template validator to distinguish a *sanctioned escalation* from
 *drift*, so projects that deliberately pin a role above its `role_hints` default stop
@@ -72,6 +75,61 @@ The plausible resolutions, in rough order of preference:
 
 A bare `--allow-escalation` flag is explicitly rejected: global, unreviewable, records
 no reason, and would pass a genuine downgrade.
+
+## Decision: `inherit` (2026-07-31)
+
+### Evidence
+
+| Case | Setup | Observed |
+|---|---|---|
+| A | Task call **omits** `model` under Grok 4.5 High parent | Child is Grok 4.5 High |
+| B | Task call pins `composer-2.5` under Grok parent | Child is Composer 2.5 (control) |
+| C | Nested: Composer parent omits `model` on its child | Child is Composer, **not** grandparent Grok |
+| Env | `CLAUDE_CODE_SUBAGENT_MODEL` | unset (no silent override) |
+
+Cursor docs (`cursor.com/docs/subagents.md`, fetched 2026-07-31): `model` default is
+`inherit`; `inherit` means "same model as the parent agent." Unavailable configured
+models fall back to a *compatible* model (admin block / Max Mode / plan limits). That
+fallback is about a concrete ID being unusable; it does not redefine `inherit`.
+
+Task-tool omission and frontmatter `inherit` are the same resolution rule in the docs.
+This session confirmed omission empirically under two different immediate parents.
+Frontmatter `inherit` was not separately invoked (Task enum does not expose project
+agent files here); treat omission ≡ inherit for checker purposes.
+
+### What that means for a static checker
+
+`inherit` has **no tier**. It means "immediate parent session model." Under a frontier
+chief that is frontier cost; under a cheap parent it is cheap. The repo cannot see the
+session, so the checker must decide by **role**, not by inventing a tier for the token.
+
+### Mechanism chosen
+
+**Combine (1) and (2), scoped to policy — not bare tier-aware for every role.**
+
+1. **Escalatable roles only:** `verifier` and `executor` (README / agent-templates
+   README). `security-executor` already binds `inherit` on Cursor via `role_hints`.
+2. **On those roles:** accept a pin whose catalog `tier` is **≥** the `role_hints`
+   **primary** default tier (`tag_vocab.tier` order). Reject downgrades.
+3. **On those roles:** also accept literal `inherit` (sanctioned session-model
+   escalation; matches fable's Cursor verifier instruction and consumer `executor`
+   pins).
+4. **All other canonical roles** (`scout` / `Explore` / `explore` / `mech-executor`):
+   exact `role_hints` match only. `inherit` stays a failure — that is the defect the
+   tool exists to catch.
+5. **No** rationale marker, **no** override file, **no** global flag.
+
+Bare option (1) alone is rejected: tier-up on `scout` would invert the tool.
+Option (2) alone is insufficient: it would not pass `claude/verifier.md` → `opus`.
+
+### Adversarial notes absorbed
+
+- Floor tier comes from the **primary** hint only; `cursor_alternate` stays an exact
+  allowlist entry (already handled).
+- Unknown / non-catalog IDs on escalatable roles still fail (no tier to compare).
+- PR #1's old regression "Cursor `executor` → `inherit` must fail" **flips**: that case
+  becomes the sanctioned pass. Keep the other PR #1 cases; replace that one with
+  "scout → inherit must fail" and "executor → cheap downgrade must fail."
 
 ## Scope
 

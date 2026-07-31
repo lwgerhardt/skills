@@ -9,6 +9,10 @@ here: a role_hint names a catalog model key, and the identifiers valid for a
 platform come from that model's claude_code_alias / claude_code_model_id /
 cursor_model_id. A hint that names a missing model, or a model with no
 identifier on the platform it is bound to, is a failure rather than a skip.
+
+Canonical roles match role_hints exactly, except verifier and executor may
+escalate: a higher catalog tier than the primary hint, or literal ``inherit``.
+Downgrades and inherit on cheap roles still fail.
 """
 
 from __future__ import annotations
@@ -47,6 +51,8 @@ CANONICAL_ROLES: dict[str, tuple[str, ...]] = {
 EXPLORE_ROLE = {"Explore": "scout", "explore": "scout"}
 
 INHERIT = "inherit"
+
+ESCALATABLE_ROLES = frozenset({"verifier", "executor"})
 
 # Cursor accepts model parameters in bracket notation, e.g.
 # claude-opus-5-thinking-high[effort=high,context=300k].
@@ -177,6 +183,44 @@ def allowed_models(
     return frozenset(allowed), errors
 
 
+def tier_rank(catalog: dict, tier_name: str) -> int:
+    """Index of tier_name in tag_vocab.tier (ascending cost/capability)."""
+    tiers = catalog.get("tag_vocab", {}).get("tier", [])
+    try:
+        return tiers.index(tier_name)
+    except ValueError:
+        return -1
+
+
+def model_key_for_identifier(
+    catalog: dict, platform: str, model_id: str
+) -> str | None:
+    """Catalog model key for a platform identifier, or None when unknown."""
+    for model_key, entry in catalog.get("models", {}).items():
+        for field in PLATFORM_ID_FIELDS[platform]:
+            if entry.get(field) == model_id:
+                return model_key
+    return None
+
+
+def primary_hint_tier(catalog: dict, platform: str, role: str) -> int | None:
+    """Tier rank of the primary role_hints binding, or None when not comparable."""
+    hint_role = EXPLORE_ROLE.get(role, role)
+    entry = catalog.get("role_hints", {}).get(hint_role)
+    if not entry:
+        return None
+    primary = entry.get(platform)
+    if not primary or primary == INHERIT:
+        return None
+    if primary not in catalog.get("models", {}):
+        return None
+    tier_name = catalog["models"][primary].get("tier")
+    if not tier_name:
+        return None
+    rank = tier_rank(catalog, tier_name)
+    return rank if rank >= 0 else None
+
+
 def check_canonical_agent(
     path: Path,
     platform: str,
@@ -213,10 +257,41 @@ def check_canonical_agent(
     if errors:
         return
 
-    if normalize_model(model) not in allowed:
+    normalized = normalize_model(model)
+    if normalized in allowed:
+        return
+
+    hint_role = EXPLORE_ROLE.get(role, role)
+    if hint_role in ESCALATABLE_ROLES:
+        if normalized == INHERIT:
+            return
+        floor_tier = primary_hint_tier(catalog, platform, role)
+        model_key = model_key_for_identifier(catalog, platform, normalized)
+        if floor_tier is not None and model_key is not None:
+            pin_tier_name = catalog["models"][model_key].get("tier")
+            pin_tier = tier_rank(catalog, pin_tier_name) if pin_tier_name else -1
+            if pin_tier >= floor_tier:
+                return
+            failures.append(
+                f"{label}: model {model!r} is below the role_hints default tier "
+                f"for role {role!r}; escalate only, never downgrade"
+            )
+            return
         failures.append(
             f"{label}: model {model!r} not in allowed {sorted(allowed)!r} for role {role!r}"
         )
+        return
+
+    if normalized == INHERIT:
+        failures.append(
+            f"{label}: model 'inherit' takes the session model, so this role would "
+            f"run at chief price; pin a cheap model from role_hints"
+        )
+        return
+
+    failures.append(
+        f"{label}: model {model!r} not in allowed {sorted(allowed)!r} for role {role!r}"
+    )
 
 
 def check_extra_agent(
