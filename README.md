@@ -16,8 +16,12 @@ _shared/
   chief-agent-core.md        policy identical across all chiefs
   MODEL-CATALOG.md           per-model tags, identifiers, pairwise guidance
   model-catalog.json         machine-readable canonical source
+  agent-templates/
+    claude/                  worker stubs for .claude/agents/
+    cursor/                  worker stubs for .cursor/agents/
   scripts/
     check_catalog_sync.py    drift detection against a project copy
+    check_agent_templates.py validate worker model pins vs role_hints
 fable-chief-agent/
   SKILL.md
   references -> ../_shared
@@ -86,6 +90,32 @@ Roles are names, not models. `scout`, `mech-executor`, `executor`, `verifier`, a
 `security-executor` are bound to actual models in subagent frontmatter under
 `.claude/agents/` or `.cursor/agents/`. `MODEL-CATALOG.md` is what you consult to
 choose a binding; the skills themselves never hardcode one.
+
+## Worker agent templates
+
+Chief skills install once in `~/.claude/skills/`. Model bindings are per-project:
+copy the stubs into each repo's agent directories.
+
+```bash
+cp _shared/agent-templates/claude/*  <project>/.claude/agents/
+cp _shared/agent-templates/cursor/*  <project>/.cursor/agents/
+```
+
+Templates pin models from `role_hints` in `model-catalog.json`. Omit `model` in
+frontmatter and cheap roles inherit the frontier session — the templates always set
+it. Claude `Explore.md` (capital E) overrides the built-in Explore agent; Cursor uses
+`explore.md` (lowercase) as the cheap analog.
+
+Validate the canonical templates or an installed project copy:
+
+```bash
+_shared/scripts/check_agent_templates.py
+_shared/scripts/check_agent_templates.py --target <project>
+```
+
+Exits nonzero on missing roles, wrong `name`, or model pins that drift from
+`role_hints`. Projects may escalate `verifier` or `executor` pins; the templates ship
+the cheap defaults.
 
 ## Chief summary
 
