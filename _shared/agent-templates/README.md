@@ -21,7 +21,7 @@ Copy only the platform the project uses; the validator does not require both.
 - **Cursor `explore.md`** — lowercase. Cheap Explore analog; pin `composer-2.5` so subagents do not inherit the chief model.
 - **Identifiers are per platform.** Claude Code aliases (`haiku`, `opus`) and Cursor slugs (`composer-2.5`, `claude-opus-5-thinking-high`) are not interchangeable. See `MODEL-CATALOG.md`.
 - **Read-only roles are enforced, not just described.** Claude uses `tools` / `disallowedTools`; Cursor uses `readonly: true`. The Cursor `verifier` deliberately stays writable — `readonly` blocks state-changing shell commands, and verification has to run tests.
-- **Defaults come from `role_hints`** in `model-catalog.json`. Projects may escalate `verifier` or `executor` pins for high-risk work; templates ship the cheap defaults.
+- **Defaults come from `role_hints`** in `model-catalog.json`. Projects may escalate `verifier` or `executor` pins to a higher catalog tier or `inherit` for high-risk work; downgrades and `inherit` on cheap roles still fail. Templates ship the cheap defaults.
 
 ## Cross-client discovery
 
@@ -35,6 +35,6 @@ _shared/scripts/check_agent_templates.py --target <project>    # installed copie
 _shared/scripts/check_agent_templates.py --target <project> --platform both
 ```
 
-Exits 0 when every agent in the directory pins a platform-appropriate model and the canonical roles match `role_hints`; exits 1 and prints drift lines on failure. Files other than the six canonical roles are checked for a `model` pin too — an unpinned agent inheriting a frontier session is the defect that actually costs money.
+Exits 0 when every agent in the directory pins a platform-appropriate model and the canonical roles match `role_hints` (with sanctioned escalations on `verifier` and `executor`); exits 1 and prints drift lines on failure. Files other than the six canonical roles are checked for a `model` pin too — an unpinned agent inheriting a frontier session is the defect that actually costs money.
 
 `--target` checks whichever agent directories exist. `--platform both` requires each one; `--platform claude|cursor` checks a single client.

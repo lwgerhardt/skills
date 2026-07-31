@@ -127,7 +127,8 @@ the directory that fails to pin a model — the unpinned-worker case is the one 
 actually costs money. A `role_hints` entry that goes missing fails loudly rather than
 skipping the check. `--target` checks whichever agent directories exist; pass
 `--platform both` to require each one. Projects may escalate `verifier` or `executor`
-pins; the templates ship the cheap defaults.
+pins to a higher catalog tier or `inherit`; downgrades and `inherit` on cheap roles
+still fail. The templates ship the cheap defaults.
 
 ## Chief summary
 
